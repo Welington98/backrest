@@ -490,3 +490,66 @@ func TestRestoreAmbiguity(t *testing.T) {
 		t.Errorf("FAIL: Expected main file missing: %s", expectedFile)
 	}
 }
+
+// TestCopyFromPasswordSources verifies that `restic copy` works when the repos'
+// passwords come from the repo env (RESTIC_PASSWORD_FILE, as rendered by a secrets
+// agent) instead of the config. Both repos use the same variable name, so the source
+// value must not leak into, or be overridden by, the destination's.
+func TestCopyFromPasswordSources(t *testing.T) {
+	secrets := t.TempDir()
+	srcPwFile := filepath.Join(secrets, "src-password")
+	dstPwFile := filepath.Join(secrets, "dst-password")
+	if err := os.WriteFile(srcPwFile, []byte("src-secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dstPwFile, []byte("dst-secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name string
+		src  *v1.Repo
+		dst  *v1.Repo
+	}{
+		{
+			name: "config passwords",
+			src:  &v1.Repo{Id: "src", Uri: t.TempDir(), Password: "src-secret", Flags: []string{"--no-cache"}},
+			dst:  &v1.Repo{Id: "dst", Uri: t.TempDir(), Password: "dst-secret", Flags: []string{"--no-cache"}},
+		},
+		{
+			name: "password files in env on both repos",
+			src:  &v1.Repo{Id: "src", Uri: t.TempDir(), Env: []string{"RESTIC_PASSWORD_FILE=" + srcPwFile}, Flags: []string{"--no-cache"}},
+			dst:  &v1.Repo{Id: "dst", Uri: t.TempDir(), Env: []string{"RESTIC_PASSWORD_FILE=" + dstPwFile}, Flags: []string{"--no-cache"}},
+		},
+		{
+			name: "source from env, destination from config",
+			src:  &v1.Repo{Id: "src", Uri: t.TempDir(), Env: []string{"RESTIC_PASSWORD_FILE=" + srcPwFile}, Flags: []string{"--no-cache"}},
+			dst:  &v1.Repo{Id: "dst", Uri: t.TempDir(), Password: "dst-secret", Flags: []string{"--no-cache"}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			srcOrch := initRepoHelper(t, configForTest, tc.src)
+			dstOrch := initRepoHelper(t, configForTest, tc.dst)
+
+			plan := &v1.Plan{Id: "plan1", Repo: tc.src.Id, Paths: []string{test.CreateTestData(t)}}
+			if _, err := srcOrch.Backup(ctx, plan, false, nil); err != nil {
+				t.Fatalf("backup: %v", err)
+			}
+
+			var out bytes.Buffer
+			if err := dstOrch.CopyFrom(ctx, tc.src, plan.Id, &out); err != nil {
+				t.Fatalf("CopyFrom: %v\n%s", err, out.String())
+			}
+			snaps, err := dstOrch.Snapshots(ctx)
+			if err != nil {
+				t.Fatalf("Snapshots: %v", err)
+			}
+			if len(snaps) != 1 {
+				t.Fatalf("expected 1 copied snapshot, got %d", len(snaps))
+			}
+		})
+	}
+}
