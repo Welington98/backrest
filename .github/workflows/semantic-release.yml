@@ -1,0 +1,61 @@
+# Versioning: semantic-release derives the next version from Conventional
+# Commits on main (feat: -> minor, fix: -> patch, "!" or BREAKING CHANGE ->
+# major), updates CHANGELOG.md, tags vX.Y.Z and creates the GitHub release.
+#
+# Tags pushed with GITHUB_TOKEN do not trigger other workflows, so the build
+# and publish pipeline (release.yml -> GoReleaser) is started explicitly via
+# workflow_dispatch on the new tag.
+name: Semantic Release
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semantic-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version and tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push CHANGELOG commit + tag, create the GitHub release
+      issues: write
+      pull-requests: write
+      actions: write # dispatch release.yml for the new tag
+    outputs:
+      published: ${{ steps.semantic.outputs.new_release_published }}
+      version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # semantic-release needs the full history and tags
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run semantic-release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 24
+          extra_plugins: |
+            @semantic-release/changelog@6
+            @semantic-release/git@10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start the build/publish pipeline for the new tag
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "v${{ steps.semantic.outputs.new_release_version }}"
