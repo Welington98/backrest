@@ -682,5 +682,17 @@
   "app_remote_repo_info": "This is a remote repo from {origin}. Operation history only includes backups run locally and may be incomplete.",
   "add_repo_modal_error_env_format": "A variável de ambiente deve estar no formato CHAVE=VALOR",
   "add_repo_modal_env_vars_placeholder": "CHAVE=VALOR (Um por linha)",
-  "hooks_form_list_webhook_url": "{service} Webhook URL"
+  "hooks_form_list_webhook_url": "{service} Webhook URL",
+  "add_plan_modal_copy": "Cópia",
+  "add_plan_modal_copy_title": "Copiar para outro repositório",
+  "add_plan_modal_copy_description": "Replica os snapshots deste plano em um segundo repositório após cada backup bem-sucedido",
+  "add_plan_modal_copy_dest_label": "Repositório de destino",
+  "add_plan_modal_copy_dest_tooltip": "Após cada backup que gera um snapshot, os snapshots do plano são copiados com `restic copy`. Cada repositório usa a própria senha; as credenciais do backend (ex.: chaves AWS) vêm de um ambiente compartilhado, então dois repositórios do mesmo backend não podem exigir credenciais diferentes.",
+  "add_plan_modal_copy_dest_none": "Não copiar",
+  "add_plan_modal_copy_dest_placeholder": "Selecione o repositório de destino",
+  "op_type_copy": "Cópia",
+  "op_row_copy_output": "Saída da cópia",
+  "repo_hooks_command_runs_condition_copy_start": "Disparado quando uma cópia para outro repositório começa",
+  "repo_hooks_command_runs_condition_copy_success": "Disparado quando uma cópia para outro repositório termina com sucesso",
+  "repo_hooks_command_runs_condition_copy_error": "Disparado quando uma cópia para outro repositório falha"
 }

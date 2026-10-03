@@ -32,6 +32,7 @@ import {
   FiClock,
   FiArchive,
   FiSliders,
+  FiCopy,
 } from "react-icons/fi";
 import { alerts, formatErrorAlert } from "../../components/common/Alerts";
 import { namePattern } from "../../lib/util";
@@ -202,6 +203,14 @@ export const AddPlanModal = ({
         ignoreUnknownFields: true,
       });
 
+      // The destination must differ from the plan's repo (e.g. the repo was changed after picking a destination).
+      if (
+        !plan.copyPolicy?.destRepo ||
+        plan.copyPolicy.destRepo === plan.repo
+      ) {
+        delete plan.copyPolicy;
+      }
+
       if (
         plan.retention &&
         equals(
@@ -253,11 +262,23 @@ export const AddPlanModal = ({
     ],
   });
 
+  // Destination for `restic copy`: any local repo other than the plan's own.
+  const copyNone = "__none__";
+  const copyRepoOptions = createListCollection({
+    items: [
+      { label: m.add_plan_modal_copy_dest_none(), value: copyNone },
+      ...localRepos
+        .filter((r) => r.id !== getField(["repo"]))
+        .map((r) => ({ label: r.id, value: r.id })),
+    ],
+  });
+
   const sections: SectionDef[] = [
     { id: "details", label: m.op_row_details(), icon: <FiFileText size={14} /> },
     { id: "scope", label: m.add_plan_modal_scope(), icon: <FiFolder size={14} /> },
     { id: "schedule", label: m.add_plan_modal_schedule(), icon: <FiClock size={14} /> },
     { id: "retention", label: m.add_plan_modal_retention(), icon: <FiArchive size={14} /> },
+    { id: "copy", label: m.add_plan_modal_copy(), icon: <FiCopy size={14} /> },
     { id: "advanced", label: m.add_plan_modal_advanced(), icon: <FiSliders size={14} /> },
   ];
 
@@ -499,6 +520,50 @@ export const AddPlanModal = ({
               onChange={(v: any) => updateField(["retention"], v)}
             />
           )}
+        </SectionCard>
+      </TwoPaneSection>
+
+      {/* Copy Section */}
+      <TwoPaneSection id="copy">
+        <SectionCard
+          icon={<FiCopy size={16} />}
+          title={m.add_plan_modal_copy_title()}
+          description={m.add_plan_modal_copy_description()}
+        >
+          <Field
+            label={m.add_plan_modal_copy_dest_label()}
+            helperText={m.add_plan_modal_copy_dest_tooltip()}
+          >
+            <SelectRoot
+              collection={copyRepoOptions}
+              size="sm"
+              value={[getField(["copyPolicy", "destRepo"]) || copyNone]}
+              onValueChange={(e: any) => {
+                const v = e.value[0];
+                updateField(
+                  ["copyPolicy"],
+                  v && v !== copyNone ? { destRepo: v } : undefined,
+                );
+              }}
+              width="full"
+            >
+              {/* @ts-ignore */}
+              <SelectTrigger data-testid="add-plan-copy-select">
+                {/* @ts-ignore */}
+                <SelectValueText
+                  placeholder={m.add_plan_modal_copy_dest_placeholder()}
+                />
+              </SelectTrigger>
+              {/* @ts-ignore */}
+              <SelectContent>
+                {copyRepoOptions.items.map((item: any) => (
+                  <SelectItem item={item} key={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectRoot>
+          </Field>
         </SectionCard>
       </TwoPaneSection>
 

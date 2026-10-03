@@ -333,4 +333,106 @@ describe("AddPlanModal", () => {
     // ...and the modal remains open.
     expect(screen.getByText(m.app_menu_add_plan())).toBeInTheDocument();
   });
+
+  describe("copy policy", () => {
+    const configWithTwoRepos = (extra?: Parameters<typeof makeConfig>[0]) =>
+      makeConfig({
+        repos: [
+          makeRepo({ id: "r1", guid: "g1" }),
+          makeRepo({ id: "cloud", guid: "g2" }),
+        ],
+        ...extra,
+      });
+
+    const selectCopyDest = async (
+      user: ReturnType<typeof newUser>,
+      repoId: string,
+    ) => {
+      const trigger = screen.getByRole("combobox", {
+        name: m.add_plan_modal_copy_dest_label(),
+      });
+      await user.click(trigger);
+      await user.click(await screen.findByRole("option", { name: repoId }));
+    };
+
+    it("saves the chosen destination as copyPolicy.destRepo", async () => {
+      const config = configWithTwoRepos();
+      const onSaveOverride = vi.fn(async () => {});
+      renderModal({ config, onSaveOverride });
+      const user = newUser();
+
+      await screen.findByText(m.app_menu_add_plan());
+      await typeName(user, config, "with-copy");
+      await selectRepo(user, "r1");
+      await selectCopyDest(user, "cloud");
+      await addPath(user, "/bar");
+      await submit(user);
+
+      await waitFor(() => expect(onSaveOverride).toHaveBeenCalledTimes(1));
+      const saved = (onSaveOverride.mock.calls as any)[0][0] as Plan;
+      expect(saved.copyPolicy?.destRepo).toBe("cloud");
+    });
+
+    it("does not offer the plan's own repo as a destination", async () => {
+      const config = configWithTwoRepos();
+      renderModal({ config });
+      const user = newUser();
+
+      await screen.findByText(m.app_menu_add_plan());
+      await selectRepo(user, "r1");
+      await user.click(
+        screen.getByRole("combobox", {
+          name: m.add_plan_modal_copy_dest_label(),
+        }),
+      );
+      expect(
+        await screen.findByRole("option", { name: "cloud" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("option", { name: "r1" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("leaves copyPolicy unset when no destination is chosen", async () => {
+      const config = configWithTwoRepos();
+      const onSaveOverride = vi.fn(async () => {});
+      renderModal({ config, onSaveOverride });
+      const user = newUser();
+
+      await screen.findByText(m.app_menu_add_plan());
+      await typeName(user, config, "no-copy");
+      await selectRepo(user, "r1");
+      await addPath(user, "/bar");
+      await submit(user);
+
+      await waitFor(() => expect(onSaveOverride).toHaveBeenCalledTimes(1));
+      const saved = (onSaveOverride.mock.calls as any)[0][0] as Plan;
+      expect(saved.copyPolicy).toBeUndefined();
+    });
+
+    it("edit mode keeps an existing copyPolicy", async () => {
+      const plan = makePlan({
+        id: "p1",
+        repo: "r1",
+        paths: ["/existing"],
+        copyPolicy: { destRepo: "cloud" },
+      } as any);
+      const config = configWithTwoRepos({ plans: [plan] });
+      vi.mocked(backrestService.setConfig).mockImplementation(
+        async (c: any) => c,
+      );
+      renderModal({ config, template: plan });
+      const user = newUser();
+
+      await screen.findByText(m.add_plan_modal_title_update());
+      await submit(user);
+
+      await waitFor(() =>
+        expect(backrestService.setConfig).toHaveBeenCalledTimes(1),
+      );
+      const savedConfig = vi.mocked(backrestService.setConfig).mock
+        .calls[0][0] as Config;
+      expect(savedConfig.plans[0].copyPolicy?.destRepo).toBe("cloud");
+    });
+  });
 });

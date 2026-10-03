@@ -9,6 +9,7 @@ import {
   FaPaperclip,
   FaRobot,
   FaSave,
+  FaCopy,
 } from "react-icons/fa";
 import { OperationStatus } from "../../../gen/ts/v1/operations_pb";
 
@@ -51,6 +52,9 @@ export const OperationIcon = ({
       break;
     case DisplayType.RUNCOMMAND:
       avatar = <FaCode style={style} />;
+      break;
+    case DisplayType.COPY:
+      avatar = <FaCopy style={style} />;
       break;
   }
 

@@ -682,5 +682,17 @@
   "app_remote_repo_info": "This is a remote repo from {origin}. Operation history only includes backups run locally and may be incomplete.",
   "add_repo_modal_error_env_format": "Environment variable must be in format KEY=VALUE",
   "add_repo_modal_env_vars_placeholder": "KEY=VALUE (One per line)",
-  "hooks_form_list_webhook_url": "{service} Webhook URL"
+  "hooks_form_list_webhook_url": "{service} Webhook URL",
+  "add_plan_modal_copy": "Copy",
+  "add_plan_modal_copy_title": "Copy to another repository",
+  "add_plan_modal_copy_description": "Replicate this plan's snapshots into a second repository after each successful backup",
+  "add_plan_modal_copy_dest_label": "Destination repository",
+  "add_plan_modal_copy_dest_tooltip": "After each backup that creates a snapshot, the plan's snapshots are copied with `restic copy`. Both repositories use their own passwords; backend credentials (e.g. AWS keys) are read from a shared environment, so two repos of the same backend cannot need different credentials.",
+  "add_plan_modal_copy_dest_none": "Don't copy",
+  "add_plan_modal_copy_dest_placeholder": "Select a destination repository",
+  "op_type_copy": "Copy",
+  "op_row_copy_output": "Copy Output",
+  "repo_hooks_command_runs_condition_copy_start": "Triggered when a copy to another repository begins",
+  "repo_hooks_command_runs_condition_copy_success": "Triggered when a copy to another repository completes successfully",
+  "repo_hooks_command_runs_condition_copy_error": "Triggered when a copy to another repository fails"
 }

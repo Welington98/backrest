@@ -88,6 +88,9 @@ const hookConditionDescriptions: Record<string, string> = {
   CONDITION_FORGET_SUCCESS:
     m.repo_hooks_command_runs_condition_forget_success(),
   CONDITION_FORGET_ERROR: m.repo_hooks_command_runs_condition_forget_error(),
+  CONDITION_COPY_START: m.repo_hooks_command_runs_condition_copy_start(),
+  CONDITION_COPY_SUCCESS: m.repo_hooks_command_runs_condition_copy_success(),
+  CONDITION_COPY_ERROR: m.repo_hooks_command_runs_condition_copy_error(),
   CONDITION_ANY_ERROR: m.repo_hooks_command_runs_condition_any_error(),
   CONDITION_UNKNOWN: m.repo_hooks_command_runs_condition_unknown(),
 };
