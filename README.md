@@ -7,10 +7,88 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/garethgeorge/backrest/actions/workflows/test.yml/badge.svg" />
-  <img src="https://img.shields.io/github/downloads/garethgeorge/backrest/total" />
-  <img src="https://img.shields.io/docker/pulls/garethgeorge/backrest" />
+  <img src="https://github.com/Welington98/backrest/actions/workflows/test.yml/badge.svg" />
 </p>
+
+---
+
+> [!IMPORTANT]
+> **This is a fork** of [garethgeorge/backrest](https://github.com/garethgeorge/backrest) (GPL-3.0, see [LICENSE](./LICENSE)),
+> adapted for service providers that back up many customer sites to a central hub. Everything below the
+> [fork section](#this-fork) is the upstream documentation. The install script, Homebrew tap and Docker images
+> referenced there are **upstream's** and do **not** include the fork's changes; see
+> [Using this fork](#using-this-fork).
+
+## This fork
+
+**What it adds on top of upstream** (all of it is on branches that are not merged into `main` yet and has **not been through a pilot**):
+
+| Feature | What it does | Branch |
+| --- | --- | --- |
+| Copy between repos | A plan can replicate its snapshots into a second repo (`restic copy`) after each successful backup. Plan form has a *Copy* section, the history shows copy operations, hooks get `CONDITION_COPY_START/SUCCESS/ERROR`. Typical use: local repo, copied to cloud storage. | `feat/restic-copy` |
+| Copy password fix | A source repo whose password comes from its env (`RESTIC_PASSWORD_FILE`/`_COMMAND`) no longer clobbers the destination's. | `fix/copy-password-env` |
+| Hub metrics | A multihost hub exports per-client state on `/metrics`, so one scrape covers every client: [Hub Monitoring](./docs/src/docs/hub-monitoring.md). | `feat/hub-metrics` |
+| Write-only repos | Per-repo *Disable scheduled maintenance*: the instance never schedules forget, prune or check (nor the per-plan forget after a backup). For clients whose credentials cannot delete. | `feat/write-only-repo` |
+| Releases | semantic-release replaces release-please; images go to `ghcr.io/welington98/backrest`. | `ci/semantic-release` |
+| Docs | [Fleet Playbook](./docs/src/docs/fleet-playbook.md), [Hub Monitoring](./docs/src/docs/hub-monitoring.md). | `docs/fleet-playbook` |
+
+The branches are stacked (each one contains the previous ones); `docs/readme-fork` (this README) sits on top.
+
+### Using this fork
+
+Until a release is published from the fork, build from source (see [Compiling](#compiling)):
+
+```sh
+git checkout docs/readme-fork   # or whichever branch has the features you need
+(cd webui && pnpm i && pnpm run build)
+(cd cmd/backrest && go build .)
+```
+
+Once semantic-release has published a version, release binaries and `ghcr.io/welington98/backrest` carry the fork's changes.
+
+### Running many clients
+
+The setup the fork is designed for, in short (details in the [Fleet Playbook](./docs/src/docs/fleet-playbook.md)):
+
+- **Clients** back up to a local repo and use a *copy policy* to push to cloud storage with a key that cannot delete, with scheduled maintenance disabled.
+- **The hub** pairs with every client ([Multihost Sync](./docs/src/docs/multihost.md)), keeps their operation history, runs forget/prune/check on the cloud repos with an admin key, and exposes metrics.
+- **Secrets** stay out of `config.json`: use the repo `env` with `RESTIC_PASSWORD_FILE=...` and `${VAR}` expansion, fed by a secrets agent (e.g. Vault Agent).
+- **Proxmox:** Backrest backs up files, not VM disks. Use Proxmox Backup Server for virtual machines and Backrest for host and file-level data.
+
+### Monitoring
+
+`/metrics` is Prometheus text format (pull, not push) and sits behind Backrest's authentication; use `basic_auth` in the scrape config.
+
+| Metric | Source |
+| --- | --- |
+| `backrest_last_task_status`, `backrest_tasks_run_total`, `backrest_tasks_duration_secs` | upstream, this instance's tasks |
+| `backrest_backup_bytes_processed`, `backrest_backup_bytes_added`, `backrest_backup_file_warnings` | upstream, this instance's backups |
+| `backrest_peer_connected`, `backrest_peer_last_heartbeat_timestamp_seconds` | fork, one series per multihost client |
+| `backrest_remote_last_operation_timestamp_seconds` | fork, latest backup/copy/prune/check/forget synced from each client |
+
+Metrics live in memory and reset when the process restarts. Example alert rules: [Hub Monitoring](./docs/src/docs/hub-monitoring.md).
+
+### Restic version
+
+The required version is the constant `RequiredResticVersion` in [`internal/resticinstaller/resticinstaller.go`](./internal/resticinstaller/resticinstaller.go) (currently `0.19.1`). Backrest uses the `restic` in `$PATH` only if it matches that version; otherwise it downloads the required one into its data directory and verifies the checksum and signature. `BACKREST_RESTIC_COMMAND` overrides the binary. The daily workflow [`update-restic.yml`](./.github/workflows/update-restic.yml) opens a PR when a newer restic is released (it assigns the PR to the upstream maintainer; change `assignees` in the workflow). Run the restic-backed tests before accepting a bump: Backrest parses restic's JSON output.
+
+### Versioning and releases
+
+Versions come from [Conventional Commits](https://www.conventionalcommits.org/) on `main` via [semantic-release](https://semantic-release.gitbook.io/) ([`.releaserc.json`](./.releaserc.json), [`semantic-release.yml`](./.github/workflows/semantic-release.yml)): `feat:` is a minor bump, `fix:` a patch, `!` or `BREAKING CHANGE:` a major. It updates `CHANGELOG.md`, tags `vX.Y.Z`, creates the GitHub release and then starts `release.yml` (GoReleaser: binaries, Windows installer, macOS bundles, container image).
+
+> [!WARNING]
+> The baseline tag has not been created in the fork yet. Create `v1.14.1` on the upstream release commit (`875c9cb`) before the first run, otherwise the first release is `1.0.0`.
+> `git tag v1.14.1 875c9cb && git push origin v1.14.1`
+
+The workflow needs *Settings > Actions > General > Workflow permissions: Read and write*, and a branch-protection exception for the changelog commit if `main` is protected.
+
+### Known limitations and open questions
+
+- The write-only setup assumes `restic backup` and `restic copy` finish with a key that cannot delete objects (restic removes its own lock files). **Not verified yet.**
+- Whether a hub and a client can reference the same cloud repo (same GUID) without the sync layer treating it as a conflict is **not verified yet.**
+- Backrest has one login system; per-customer access control on the hub is **not confirmed.** Put an authenticating reverse proxy in front, or run one hub per team.
+- Copy: restic reads backend credentials for both repos from one environment, so two repos on the same backend cannot need different credentials (local to cloud works).
+- The copied snapshots are not indexed as operations on the destination repo by the copy task.
 
 ---
 
@@ -221,6 +299,18 @@ npm install -g @bufbuild/protoc-gen-es
 (cd webui && pnpm i && pnpm run build)
 (cd cmd/backrest && go build .)
 ```
+
+## Tests and generated code (fork notes)
+
+```sh
+go test ./internal/...                    # Go tests (restic-backed tests use the real restic binary)
+(cd webui && pnpm test && pnpm run check) # frontend tests and type check
+```
+
+- `go.mod` declares Go 1.26; older toolchains download it automatically.
+- After editing `proto/**`, regenerate the Go and TypeScript code with `buf generate` (plugins listed above; `protoc-gen-es` v2.11 to match the committed files). `webui/gen/ts` and `gen/go` are committed.
+- `pnpm test` needs the i18n messages compiled (`pnpm run compile-i18n`), which fetches inlang plugins from jsdelivr; behind a restrictive proxy, install `@inlang/plugin-message-format` locally and point a copy of `project.inlang/settings.json` at it.
+- Three tests in `pkg/restic` (unreadable-file cases) fail when run as root, with or without the fork's changes.
 
 ## Using VSCode Dev Containers
 
