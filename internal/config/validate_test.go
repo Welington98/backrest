@@ -233,3 +233,37 @@ func sliceEqual(a, b []string) bool {
 	}
 	return true
 }
+
+func TestValidatePlanCopyPolicy(t *testing.T) {
+	validGUID := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	repos := []*v1.Repo{
+		{Id: "local", Uri: "file:///tmp/local", Guid: validGUID},
+		{Id: "cloud", Uri: "file:///tmp/cloud", Guid: validGUID},
+	}
+
+	tests := []struct {
+		name    string
+		policy  *v1.CopyPolicy
+		wantErr bool
+	}{
+		{name: "no copy policy"},
+		{name: "empty dest is ignored", policy: &v1.CopyPolicy{}},
+		{name: "valid dest", policy: &v1.CopyPolicy{DestRepo: "cloud"}},
+		{name: "dest same as plan repo", policy: &v1.CopyPolicy{DestRepo: "local"}, wantErr: true},
+		{name: "dest not found", policy: &v1.CopyPolicy{DestRepo: "missing"}, wantErr: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &v1.Config{
+				Instance: "test",
+				Repos:    repos,
+				Plans:    []*v1.Plan{{Id: "plan1", Repo: "local", Paths: []string{"/data"}, CopyPolicy: tc.policy}},
+			}
+			err := ValidateConfig(cfg)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("ValidateConfig() error = %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}

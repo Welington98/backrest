@@ -54,6 +54,7 @@ message Operation {
     OperationRunHook operation_run_hook = 106;
     OperationCheck operation_check = 107;
     OperationRunCommand operation_run_command = 108;
+    OperationCopy operation_copy = 109;
   } 
 }
 
@@ -121,6 +122,12 @@ message OperationRunCommand {
   string command = 1;
   string output_logref = 2;
   int64 output_size_bytes = 3; // not necessarily authoritative, tracked as an optimization to allow clients to avoid fetching very large outputs.
+}
+
+// OperationCopy tracks a copy of snapshots from the operation's repo into dest_repo.
+message OperationCopy {
+  string dest_repo = 1; // ID of the repo snapshots were copied into.
+  string output_logref = 2; // logref of the copy command's output.
 }
 
 // OperationRestore tracks a restore operation.

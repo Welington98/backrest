@@ -26,6 +26,7 @@ type RepoOrchestrator interface {
 	Snapshots(ctx context.Context) ([]*restic.Snapshot, error)
 	AddTags(ctx context.Context, snapshotIDs []string, tags []string) error
 	RunCommand(ctx context.Context, command string, writer io.Writer) error
+	CopyFrom(ctx context.Context, src *v1.Repo, planID string, output io.Writer) error
 }
 
 var NeverScheduledTask = ScheduledTask{}

@@ -278,6 +278,11 @@ func (t *BackupTask) Run(ctx context.Context, st ScheduledTask, runner TaskRunne
 		if err := runner.ScheduleTask(NewOneoffIndexSnapshotsTask(t.Repo(), at), TaskPriorityIndexSnapshots); err != nil {
 			return fmt.Errorf("failed to schedule index snapshots task: %w", err)
 		}
+		if destRepoID := plan.GetCopyPolicy().GetDestRepo(); destRepoID != "" {
+			if err := runner.ScheduleTask(NewOneoffCopyTask(t.Repo(), t.PlanID(), destRepoID, at), TaskPriorityDefault); err != nil {
+				return fmt.Errorf("failed to schedule copy task: %w", err)
+			}
+		}
 	}
 
 	if err == nil {

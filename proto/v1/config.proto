@@ -127,7 +127,14 @@ message Plan {
   repeated Hook hooks = 8 [json_name="hooks"]; // hooks to run on events for this plan.
   repeated string backup_flags = 10 [json_name="backup_flags"]; // extra flags to set when running a backup command.
   bool skip_if_unchanged = 13 [json_name="skipIfUnchanged"]; // skip the backup if no changes are detected.
+  CopyPolicy copy_policy = 14 [json_name="copyPolicy"]; // optional policy for copying snapshots of this plan to another repo.
   reserved 3, 6, 11; // deprecated
+}
+
+// CopyPolicy configures `restic copy` of a plan's snapshots into another repo
+// (e.g. a local repo replicated to cloud storage) after each successful backup.
+message CopyPolicy {
+  string dest_repo = 1 [json_name="destRepo"]; // ID of the repo to copy snapshots into. Must differ from the plan's repo.
 }
 
 message CommandPrefix {
@@ -228,6 +235,11 @@ message Hook {
     CONDITION_FORGET_START = 300; // forget started.
     CONDITION_FORGET_ERROR = 301; // forget failed.
     CONDITION_FORGET_SUCCESS = 302; // forget succeeded.
+
+    // copy conditions
+    CONDITION_COPY_START = 400; // copy started.
+    CONDITION_COPY_ERROR = 401; // copy failed.
+    CONDITION_COPY_SUCCESS = 402; // copy succeeded.
   }
 
   enum OnError {

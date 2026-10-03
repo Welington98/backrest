@@ -577,6 +577,55 @@ func TestResticPrune(t *testing.T) {
 	}
 }
 
+func TestResticCopy(t *testing.T) {
+	t.Parallel()
+
+	srcURI, dstURI := t.TempDir(), t.TempDir()
+	// Different passwords: the source password is only supplied through RESTIC_FROM_PASSWORD.
+	src := NewRepo(helpers.ResticBinary(t), srcURI, WithFlags("--no-cache"), WithEnv("RESTIC_PASSWORD=src-secret"))
+	dst := NewRepo(helpers.ResticBinary(t), dstURI, WithFlags("--no-cache"), WithEnv("RESTIC_PASSWORD=dst-secret"))
+	for _, r := range []*Repo{src, dst} {
+		if err := r.Init(context.Background()); err != nil {
+			t.Fatalf("failed to init repo: %v", err)
+		}
+	}
+
+	testData := helpers.CreateTestData(t)
+	for _, tag := range []string{"plan:a", "plan:b"} {
+		if _, err := src.Backup(context.Background(), []string{testData}, nil, WithFlags("--tag", tag)); err != nil {
+			t.Fatalf("failed to backup: %v", err)
+		}
+	}
+
+	output := bytes.NewBuffer(nil)
+	if err := dst.Copy(context.Background(), srcURI, output,
+		WithEnv("RESTIC_FROM_PASSWORD=src-secret"), WithFlags("--tag", "plan:a")); err != nil {
+		t.Fatalf("failed to copy: %v\n%s", err, output.String())
+	}
+
+	snapshots, err := dst.Snapshots(context.Background())
+	if err != nil {
+		t.Fatalf("failed to list snapshots: %v", err)
+	}
+	if len(snapshots) != 1 || !slices.Contains(snapshots[0].Tags, "plan:a") {
+		t.Fatalf("expected only the plan:a snapshot to be copied, got: %+v", snapshots)
+	}
+
+	// copying again is a no-op: restic skips snapshots that already exist in the destination.
+	if err := dst.Copy(context.Background(), srcURI, nil,
+		WithEnv("RESTIC_FROM_PASSWORD=src-secret"), WithFlags("--tag", "plan:a")); err != nil {
+		t.Fatalf("failed to copy again: %v", err)
+	}
+	if snapshots, _ = dst.Snapshots(context.Background()); len(snapshots) != 1 {
+		t.Fatalf("expected 1 snapshot after repeated copy, got %d", len(snapshots))
+	}
+
+	// a wrong source password must fail.
+	if err := dst.Copy(context.Background(), srcURI, nil, WithEnv("RESTIC_FROM_PASSWORD=wrong")); err == nil {
+		t.Fatalf("expected copy with wrong source password to fail")
+	}
+}
+
 func TestResticRestore(t *testing.T) {
 	t.Parallel()
 
