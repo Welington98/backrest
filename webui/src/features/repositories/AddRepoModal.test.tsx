@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as m from "../../paraglide/messages";
@@ -228,6 +228,35 @@ describe("AddRepoModal", () => {
     expect(backrestService.addRepo).not.toHaveBeenCalled();
     expect(successSpy).toHaveBeenCalledWith(
       m.add_repo_modal_success_updated({ uri: "/tmp/repo" }),
+    );
+  });
+
+  it("saves maintenanceDisabled when the toggle is switched on", async () => {
+    const onSaveOverride = vi.fn().mockResolvedValue(undefined);
+    const { user } = renderWithProviders(
+      <AddRepoModal template={null} onSaveOverride={onSaveOverride} />,
+      { config: makeConfig() },
+    );
+
+    await fillCreateForm(user, {
+      id: "writeonly",
+      uri: "/tmp/repo",
+      password: "supersecret",
+    });
+    // ToggleField renders a hidden native checkbox inside the label.
+    const toggle = screen
+      .getByText(m.add_repo_modal_maintenance_disabled())
+      .closest("label")
+      ?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    expect(toggle).toBeTruthy();
+    fireEvent.click(toggle);
+    await user.click(
+      screen.getByRole("button", { name: m.add_plan_modal_button_submit() }),
+    );
+
+    await waitFor(() => expect(onSaveOverride).toHaveBeenCalled());
+    expect(onSaveOverride).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "writeonly", maintenanceDisabled: true }),
     );
   });
 

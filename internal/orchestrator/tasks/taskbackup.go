@@ -268,7 +268,7 @@ func (t *BackupTask) Run(ctx context.Context, st ScheduledTask, runner TaskRunne
 		// new repos) must not suppress per-plan retention, otherwise no forget
 		// runs at either level and snapshots are retained forever.
 		repoConfig, _ := runner.GetRepo(t.RepoID())
-		if !protoutil.ScheduleEnabled(repoConfig.GetForgetPolicy().GetSchedule()) {
+		if !repoConfig.GetMaintenanceDisabled() && !protoutil.ScheduleEnabled(repoConfig.GetForgetPolicy().GetSchedule()) {
 			if _, ok := plan.Retention.GetPolicy().(*v1.RetentionPolicy_PolicyKeepAll); plan.Retention != nil && !ok {
 				if err := runner.ScheduleTask(NewOneoffForgetTask(t.Repo(), t.PlanID(), op.FlowId, at), TaskPriorityForget); err != nil {
 					return fmt.Errorf("failed to schedule forget task: %w", err)

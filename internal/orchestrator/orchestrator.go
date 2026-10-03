@@ -294,9 +294,7 @@ func (o *Orchestrator) ScheduleDefaultTasks(config *v1.Config) error {
 	}
 
 	for _, repo := range config.Repos {
-		// Skip repos managed by a remote instance; the remote instance's
-		// orchestrator owns prune/check scheduling for those.
-		if repo.GetOriginInstanceId() != "" {
+		if !schedulesMaintenance(repo) {
 			continue
 		}
 
@@ -790,4 +788,11 @@ func (o *Orchestrator) Config() *v1.Config {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	return proto.Clone(o.config).(*v1.Config)
+}
+
+// schedulesMaintenance returns whether this instance schedules forget, prune and check for the repo.
+// Repos managed by a remote instance are maintained by that instance's orchestrator, and repos
+// with maintenance disabled are write-only here (maintenance is run elsewhere, e.g. by a hub).
+func schedulesMaintenance(repo *v1.Repo) bool {
+	return repo.GetOriginInstanceId() == "" && !repo.GetMaintenanceDisabled()
 }

@@ -643,24 +643,25 @@ func (x *Multihost) GetPairingTokens() []*Multihost_PairingToken {
 }
 
 type Repo struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                                        // unique but human readable ID for this repo.
-	Uri              string                 `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`                                                      // URI of the repo.
-	Guid             string                 `protobuf:"bytes,11,opt,name=guid,proto3" json:"guid,omitempty"`                                                   // a globally unique ID for this repo. Should be derived as the 'id' field in `restic cat config --json`.
-	Password         string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`                                            // plaintext password
-	Env              []string               `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty"`                                                      // extra environment variables to set for restic.
-	Flags            []string               `protobuf:"bytes,5,rep,name=flags,proto3" json:"flags,omitempty"`                                                  // extra flags set on the restic command.
-	PrunePolicy      *PrunePolicy           `protobuf:"bytes,6,opt,name=prune_policy,json=prunePolicy,proto3" json:"prune_policy,omitempty"`                   // policy for when to run prune.
-	CheckPolicy      *CheckPolicy           `protobuf:"bytes,9,opt,name=check_policy,json=checkPolicy,proto3" json:"check_policy,omitempty"`                   // policy for when to run check.
-	Hooks            []*Hook                `protobuf:"bytes,7,rep,name=hooks,proto3" json:"hooks,omitempty"`                                                  // hooks to run on events for this repo.
-	AutoUnlock       bool                   `protobuf:"varint,8,opt,name=auto_unlock,json=autoUnlock,proto3" json:"auto_unlock,omitempty"`                     // automatically unlock the repo when needed.
-	AutoInitialize   bool                   `protobuf:"varint,12,opt,name=auto_initialize,json=autoInitialize,proto3" json:"auto_initialize,omitempty"`        // whether the repo should be auto-initialized if not found.
-	CommandPrefix    *CommandPrefix         `protobuf:"bytes,10,opt,name=command_prefix,json=commandPrefix,proto3" json:"command_prefix,omitempty"`            // modifiers for the restic commands
-	Shared           bool                   `protobuf:"varint,13,opt,name=shared,proto3" json:"shared,omitempty"`                                              // if true, this repo is pushed to all authorized clients with read-config permission
-	OriginInstanceId string                 `protobuf:"bytes,14,opt,name=origin_instance_id,json=originInstanceId,proto3" json:"origin_instance_id,omitempty"` // set when this repo was pushed from a remote instance; marks it as non-editable
-	ForgetPolicy     *ForgetPolicy          `protobuf:"bytes,15,opt,name=forget_policy,json=forgetPolicy,proto3" json:"forget_policy,omitempty"`               // optional repo-level forget policy. If set, overrides per-plan retention policies.
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                                                // unique but human readable ID for this repo.
+	Uri                 string                 `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`                                                              // URI of the repo.
+	Guid                string                 `protobuf:"bytes,11,opt,name=guid,proto3" json:"guid,omitempty"`                                                           // a globally unique ID for this repo. Should be derived as the 'id' field in `restic cat config --json`.
+	Password            string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`                                                    // plaintext password
+	Env                 []string               `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty"`                                                              // extra environment variables to set for restic.
+	Flags               []string               `protobuf:"bytes,5,rep,name=flags,proto3" json:"flags,omitempty"`                                                          // extra flags set on the restic command.
+	PrunePolicy         *PrunePolicy           `protobuf:"bytes,6,opt,name=prune_policy,json=prunePolicy,proto3" json:"prune_policy,omitempty"`                           // policy for when to run prune.
+	CheckPolicy         *CheckPolicy           `protobuf:"bytes,9,opt,name=check_policy,json=checkPolicy,proto3" json:"check_policy,omitempty"`                           // policy for when to run check.
+	Hooks               []*Hook                `protobuf:"bytes,7,rep,name=hooks,proto3" json:"hooks,omitempty"`                                                          // hooks to run on events for this repo.
+	AutoUnlock          bool                   `protobuf:"varint,8,opt,name=auto_unlock,json=autoUnlock,proto3" json:"auto_unlock,omitempty"`                             // automatically unlock the repo when needed.
+	AutoInitialize      bool                   `protobuf:"varint,12,opt,name=auto_initialize,json=autoInitialize,proto3" json:"auto_initialize,omitempty"`                // whether the repo should be auto-initialized if not found.
+	CommandPrefix       *CommandPrefix         `protobuf:"bytes,10,opt,name=command_prefix,json=commandPrefix,proto3" json:"command_prefix,omitempty"`                    // modifiers for the restic commands
+	Shared              bool                   `protobuf:"varint,13,opt,name=shared,proto3" json:"shared,omitempty"`                                                      // if true, this repo is pushed to all authorized clients with read-config permission
+	OriginInstanceId    string                 `protobuf:"bytes,14,opt,name=origin_instance_id,json=originInstanceId,proto3" json:"origin_instance_id,omitempty"`         // set when this repo was pushed from a remote instance; marks it as non-editable
+	ForgetPolicy        *ForgetPolicy          `protobuf:"bytes,15,opt,name=forget_policy,json=forgetPolicy,proto3" json:"forget_policy,omitempty"`                       // optional repo-level forget policy. If set, overrides per-plan retention policies.
+	MaintenanceDisabled bool                   `protobuf:"varint,16,opt,name=maintenance_disabled,json=maintenanceDisabled,proto3" json:"maintenance_disabled,omitempty"` // if true, this instance never schedules forget, prune or check for the repo (write-only clients, e.g. when the credentials cannot delete). Manual runs are still possible.
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Repo) Reset() {
@@ -796,6 +797,13 @@ func (x *Repo) GetForgetPolicy() *ForgetPolicy {
 		return x.ForgetPolicy
 	}
 	return nil
+}
+
+func (x *Repo) GetMaintenanceDisabled() bool {
+	if x != nil {
+		return x.MaintenanceDisabled
+	}
+	return false
 }
 
 type Plan struct {
@@ -2561,7 +2569,7 @@ const file_v1_config_proto_rawDesc = "" +
 	"\x1aPERMISSION_READ_OPERATIONS\x10\x01\x12\x1a\n" +
 	"\x16PERMISSION_READ_CONFIG\x10\x02\x12 \n" +
 	"\x1cPERMISSION_READ_WRITE_CONFIG\x10\x03\x12#\n" +
-	"\x1fPERMISSION_RECEIVE_SHARED_REPOS\x10\x04\"\x89\x04\n" +
+	"\x1fPERMISSION_RECEIVE_SHARED_REPOS\x10\x04\"\xbc\x04\n" +
 	"\x04Repo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03uri\x18\x02 \x01(\tR\x03uri\x12\x12\n" +
@@ -2579,7 +2587,8 @@ const file_v1_config_proto_rawDesc = "" +
 	" \x01(\v2\x11.v1.CommandPrefixR\rcommandPrefix\x12\x16\n" +
 	"\x06shared\x18\r \x01(\bR\x06shared\x12,\n" +
 	"\x12origin_instance_id\x18\x0e \x01(\tR\x10originInstanceId\x125\n" +
-	"\rforget_policy\x18\x0f \x01(\v2\x10.v1.ForgetPolicyR\fforgetPolicy\"\x8a\x03\n" +
+	"\rforget_policy\x18\x0f \x01(\v2\x10.v1.ForgetPolicyR\fforgetPolicy\x121\n" +
+	"\x14maintenance_disabled\x18\x10 \x01(\bR\x13maintenanceDisabled\"\x8a\x03\n" +
 	"\x04Plan\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04repo\x18\x02 \x01(\tR\x04repo\x12\x14\n" +

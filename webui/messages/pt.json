@@ -694,5 +694,7 @@
   "op_row_copy_output": "Saída da cópia",
   "repo_hooks_command_runs_condition_copy_start": "Disparado quando uma cópia para outro repositório começa",
   "repo_hooks_command_runs_condition_copy_success": "Disparado quando uma cópia para outro repositório termina com sucesso",
-  "repo_hooks_command_runs_condition_copy_error": "Disparado quando uma cópia para outro repositório falha"
+  "repo_hooks_command_runs_condition_copy_error": "Disparado quando uma cópia para outro repositório falha",
+  "add_repo_modal_maintenance_disabled": "Desativar manutenção agendada",
+  "add_repo_modal_maintenance_disabled_hint": "Esta instância nunca agenda forget, prune ou check para este repositório. Use em clientes que só gravam backups (ex.: credenciais sem permissão de exclusão) enquanto outra instância, como um hub central, faz a manutenção. Execuções manuais continuam disponíveis."
 }

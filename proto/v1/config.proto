@@ -114,6 +114,7 @@ message Repo {
   bool shared = 13 [json_name="shared"]; // if true, this repo is pushed to all authorized clients with read-config permission
   string origin_instance_id = 14 [json_name="originInstanceId"]; // set when this repo was pushed from a remote instance; marks it as non-editable
   ForgetPolicy forget_policy = 15 [json_name="forgetPolicy"]; // optional repo-level forget policy. If set, overrides per-plan retention policies.
+  bool maintenance_disabled = 16 [json_name="maintenanceDisabled"]; // if true, this instance never schedules forget, prune or check for the repo (write-only clients, e.g. when the credentials cannot delete). Manual runs are still possible.
 }
 
 message Plan {

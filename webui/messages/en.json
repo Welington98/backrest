@@ -694,5 +694,7 @@
   "op_row_copy_output": "Copy Output",
   "repo_hooks_command_runs_condition_copy_start": "Triggered when a copy to another repository begins",
   "repo_hooks_command_runs_condition_copy_success": "Triggered when a copy to another repository completes successfully",
-  "repo_hooks_command_runs_condition_copy_error": "Triggered when a copy to another repository fails"
+  "repo_hooks_command_runs_condition_copy_error": "Triggered when a copy to another repository fails",
+  "add_repo_modal_maintenance_disabled": "Disable scheduled maintenance",
+  "add_repo_modal_maintenance_disabled_hint": "This instance will never schedule forget, prune or check for this repo. Use it on clients that only write backups (e.g. credentials without delete permission) while another instance, such as a central hub, maintains the repo. Manual runs stay available."
 }

@@ -370,6 +370,24 @@ func TestBackupTaskRun(t *testing.T) {
 			wantScheduled: []string{"index_snapshots"}, // no forget
 		},
 		{
+			name: "successful backup on a repo with maintenance disabled skips per-plan forget",
+			repo: &v1.Repo{Id: "repo1", Guid: "guid1", MaintenanceDisabled: true},
+			fake: &fakeRepoOrchestrator{
+				backupResult: &restic.BackupProgressEntry{
+					MessageType: "summary",
+					SnapshotId:  testSnapshotID,
+				},
+			},
+			plan: &v1.Plan{
+				Id:   "plan1",
+				Repo: "repo1",
+				Retention: &v1.RetentionPolicy{
+					Policy: &v1.RetentionPolicy_PolicyKeepLastN{PolicyKeepLastN: 5},
+				},
+			},
+			wantScheduled: []string{"index_snapshots"}, // no forget
+		},
+		{
 			name: "successful backup with copy policy schedules copy",
 			fake: &fakeRepoOrchestrator{
 				backupResult: &restic.BackupProgressEntry{
