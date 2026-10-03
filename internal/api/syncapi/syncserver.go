@@ -13,6 +13,7 @@ import (
 	"github.com/garethgeorge/backrest/gen/go/v1sync/v1syncconnect"
 	"github.com/garethgeorge/backrest/internal/api/syncapi/permissions"
 	"github.com/garethgeorge/backrest/internal/env"
+	"github.com/garethgeorge/backrest/internal/metric"
 	"github.com/garethgeorge/backrest/internal/oplog"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -159,6 +160,9 @@ func (h *syncSessionHandlerServer) OnConnectionEstablished(ctx context.Context, 
 	peerState.LastHeartbeat = time.Now()
 	h.mgr.peerStateManager.SetPeerState(h.peer.Keyid, peerState)
 
+	metric.GetRegistry().SetPeerConnected(h.peer.InstanceId, true)
+	metric.GetRegistry().RecordPeerHeartbeat(h.peer.InstanceId, peerState.LastHeartbeat)
+
 	h.l.Sugar().Infof("accepted a connection from client instance ID %q", h.peer.InstanceId)
 
 	// Register this peer's stream handle so the API layer can send messages to it.
@@ -241,6 +245,11 @@ func (h *syncSessionHandlerServer) OnConnectionEstablished(ctx context.Context, 
 func (h *syncSessionHandlerServer) OnConnectionDisconnected() {
 	if h.peer != nil && h.handle != nil {
 		h.mgr.unregisterConnectedPeer(h.peer.Keyid, h.handle)
+		// A newer session may already have replaced this one; only report the peer as
+		// disconnected if no session is registered for it anymore.
+		if h.mgr.GetConnectedPeer(h.peer.Keyid) == nil {
+			metric.GetRegistry().SetPeerConnected(h.peer.InstanceId, false)
+		}
 	}
 }
 
@@ -251,6 +260,7 @@ func (h *syncSessionHandlerServer) HandleHeartbeat(ctx context.Context, stream *
 	}
 	peerState.LastHeartbeat = time.Now()
 	h.mgr.peerStateManager.SetPeerState(h.peer.Keyid, peerState)
+	metric.GetRegistry().RecordPeerHeartbeat(h.peer.InstanceId, peerState.LastHeartbeat)
 	return nil
 }
 
@@ -327,7 +337,49 @@ func (h *syncSessionHandlerServer) insertOrUpdate(op *v1.Operation, isUpdate boo
 	op.FlowId = localFlowID
 	// Use Set which handles both insert (Id==0) and update (Id!=0),
 	// preserving the operation's Modno from the client.
-	return h.mgr.oplog.Set(op)
+	if err := h.mgr.oplog.Set(op); err != nil {
+		return err
+	}
+	h.recordRemoteOperationMetric(op)
+	return nil
+}
+
+// recordRemoteOperationMetric exports the outcome of finished operations synced from the
+// peer so the hub can alert on peers that fail or stop producing backups.
+func (h *syncSessionHandlerServer) recordRemoteOperationMetric(op *v1.Operation) {
+	if op.UnixTimeEndMs == 0 {
+		return
+	}
+	var opType string
+	switch op.Op.(type) {
+	case *v1.Operation_OperationBackup:
+		if op.GetOperationBackup().GetDryRun() {
+			return
+		}
+		opType = "backup"
+	case *v1.Operation_OperationCopy:
+		opType = "copy"
+	case *v1.Operation_OperationPrune:
+		opType = "prune"
+	case *v1.Operation_OperationCheck:
+		opType = "check"
+	case *v1.Operation_OperationForget:
+		opType = "forget"
+	default:
+		return
+	}
+	var status string
+	switch op.Status {
+	case v1.OperationStatus_STATUS_SUCCESS:
+		status = "success"
+	case v1.OperationStatus_STATUS_WARNING:
+		status = "warning"
+	case v1.OperationStatus_STATUS_ERROR:
+		status = "failed"
+	default:
+		return // pending, in progress or cancelled: not an outcome
+	}
+	metric.GetRegistry().RecordRemoteOperation(h.peer.InstanceId, op.RepoId, op.PlanId, opType, status, time.UnixMilli(op.UnixTimeEndMs))
 }
 
 func (h *syncSessionHandlerServer) deleteByOriginalID(originalID int64) error {
