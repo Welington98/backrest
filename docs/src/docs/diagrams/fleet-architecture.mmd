@@ -1,0 +1,107 @@
+%% Fleet architecture: many customer sites, one Backrest hub.
+%% Render a PNG:
+%%   npx -y @mermaid-js/mermaid-cli -i fleet-architecture.mmd -o fleet-architecture.png -c mermaid-config.json --scale 2 -b white
+%% Green = exists in the fork, blue = planned / to configure, dashed = to be validated in a pilot.
+flowchart TB
+    TEAM(["Equipe de suporte"])
+
+    subgraph SITES["Sites dos clientes (x15)"]
+        direction LR
+        subgraph LINUX["Cliente Linux"]
+            direction TB
+            LBR["Backrest cliente<br/>plano de backup"]
+            LREPO[("Repo local")]
+            LBR -->|backup| LREPO
+        end
+        subgraph PVE["Cliente Proxmox"]
+            direction TB
+            PBR["Backrest no host<br/>/etc/pve e arquivos"]
+            PREPO[("Repo local")]
+            PBR -->|backup| PREPO
+            PBS["Proxmox Backup Server<br/>discos das VMs"]
+        end
+        AGENT["Vault Agent<br/>entrega senha e chaves"]
+        AGENT -.-> LINUX
+        AGENT -.-> PVE
+    end
+
+    subgraph HUB["Hub central - Backrest multihost"]
+        direction TB
+        PROXY["Reverse proxy<br/>TLS + autenticacao"]
+        HBR["Backrest hub<br/>historico de todos os clientes<br/>navegar e restaurar<br/>(acesso por cliente: a validar)"]
+        MAINT["Manutencao centralizada<br/>forget, prune, check"]
+        METRICS["/metrics<br/>peers e ultima operacao"]
+        PROXY --> HBR
+        HBR --- MAINT
+        HBR --- METRICS
+    end
+
+    subgraph CLOUD["Nuvem IDrive e2 - um bucket por cliente"]
+        direction TB
+        KEYW["Chave do cliente<br/>so grava, sem exclusao<br/>(a validar no piloto)"]
+        BUCKET[("Repo restic na nuvem<br/>Object Lock opcional")]
+        KEYA["Chave admin<br/>so no hub"]
+        KEYW -.->|upload| BUCKET
+        KEYA ==>|forget / prune / check| BUCKET
+    end
+
+    subgraph SECRETS["Segredos"]
+        direction TB
+        VAULT["HashiCorp Vault Community<br/>KV por cliente + AppRole"]
+        RAFT[("Snapshots Raft")]
+        VAULT --- RAFT
+    end
+
+    subgraph MON["Monitoramento e alertas"]
+        direction LR
+        PROM["Prometheus"]
+        ALERT["Alertmanager"]
+        GRAF["Grafana"]
+        ZBX["Zabbix<br/>HTTP agent"]
+        HOOKS["Hooks dos planos: Healthchecks, Telegram, Slack<br/>disparados pelos clientes e pelo hub<br/>(alerta de backup que nao rodou)"]
+        PROM --> ALERT
+        PROM --> GRAF
+        ALERT --> HOOKS
+    end
+
+    PBS -.->|"backup das VMs"| PBSSTORE[("Storage do PBS<br/>por cliente")]
+
+    TEAM --> PROXY
+    TEAM --> GRAF
+
+    SITES -->|"sync das operacoes<br/>(Read Operations)"| HUB
+    SITES ==>|"copyPolicy: restic copy<br/>chave do cliente"| CLOUD
+    HUB ==>|"manutencao<br/>chave admin"| CLOUD
+
+    SECRETS -->|"AppRole"| AGENT
+    SECRETS -->|"chave admin e senhas"| HUB
+
+    METRICS -->|"scrape com Basic Auth"| PROM
+    METRICS -.-> ZBX
+
+    subgraph LEG["Legenda"]
+        direction LR
+        L1["Existe no fork"]
+        L2["Planejado / a configurar"]
+        L3["Terceiros / externo"]
+        L4["Segredos e chaves"]
+    end
+    MON ~~~ LEG
+
+    style SITES fill:#f8fafc,stroke:#64748b
+    style HUB fill:#f0fdf4,stroke:#16a34a
+    style CLOUD fill:#fffbeb,stroke:#b45309
+    style SECRETS fill:#fffbeb,stroke:#b45309
+    style MON fill:#eff6ff,stroke:#1d4ed8
+    style LEG fill:#ffffff,stroke:#94a3b8
+    style LINUX fill:#ffffff,stroke:#94a3b8
+    style PVE fill:#ffffff,stroke:#94a3b8
+
+    classDef exists fill:#d8f3dc,stroke:#2d6a4f,color:#1b4332
+    classDef planned fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a
+    classDef external fill:#f1f5f9,stroke:#64748b,color:#0f172a
+    classDef secret fill:#fef3c7,stroke:#b45309,color:#78350f
+    class LBR,PBR,HBR,MAINT,METRICS,LREPO,PREPO,L1 exists
+    class PROM,ALERT,GRAF,ZBX,HOOKS,AGENT,L2 planned
+    class BUCKET,PBS,PBSSTORE,PROXY,TEAM,L3 external
+    class VAULT,RAFT,KEYW,KEYA,L4 secret

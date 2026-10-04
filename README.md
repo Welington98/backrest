@@ -50,6 +50,9 @@ Once semantic-release has published a version, release binaries and `ghcr.io/wel
 
 The setup the fork is designed for, in short (details in the [Fleet Playbook](./docs/src/docs/fleet-playbook.md)):
 
+Architecture diagram (Mermaid source): [`docs/src/docs/diagrams/fleet-architecture.mmd`](./docs/src/docs/diagrams/fleet-architecture.mmd).
+
+
 - **Clients** back up to a local repo and use a *copy policy* to push to cloud storage with a key that cannot delete, with scheduled maintenance disabled.
 - **The hub** pairs with every client ([Multihost Sync](./docs/src/docs/multihost.md)), keeps their operation history, runs forget/prune/check on the cloud repos with an admin key, and exposes metrics.
 - **Secrets** stay out of `config.json`: use the repo `env` with `RESTIC_PASSWORD_FILE=...` and `${VAR}` expansion, fed by a secrets agent (e.g. Vault Agent).

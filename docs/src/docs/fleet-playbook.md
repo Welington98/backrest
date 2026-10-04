@@ -3,18 +3,23 @@
 A reference setup for a service provider backing up many customer sites (Linux hosts and
 Proxmox hosts) with a central place to watch and restore them.
 
+The architecture diagram is kept as Mermaid source in
+[`diagrams/fleet-architecture.mmd`](https://github.com/Welington98/backrest/blob/main/docs/src/docs/diagrams/fleet-architecture.mmd).
+Open it in any Mermaid renderer (for example [mermaid.live](https://mermaid.live)) or render a PNG locally:
+
+```sh
+cd docs/src/docs/diagrams
+npx -y @mermaid-js/mermaid-cli -i fleet-architecture.mmd -o fleet-architecture.png \
+  -c mermaid-config.json --scale 2 -b white
 ```
- customer site                                      your infrastructure
-┌──────────────────────┐   sync (operations)   ┌───────────────────────────┐
-│ Backrest client      │ ────────────────────► │ Backrest hub              │
-│  plan ─► local repo  │                       │  - history of all clients │
-│       └► copy ─► S3  │ ─┐                    │  - maintenance (admin key)│
-└──────────────────────┘  │ upload-only key    │  - /metrics ─► Prometheus │
-                          ▼                    └─────────────┬─────────────┘
-                    ┌───────────┐   admin key (forget/prune)  │
-                    │ S3 bucket │ ◄───────────────────────────┘
-                    └───────────┘
-```
+
+What it shows: customer sites (Linux and Proxmox hosts, with Proxmox Backup Server for the VMs),
+cloud storage with separate client and admin keys, the Backrest hub, the secrets store and the
+monitoring stack. Green boxes exist in the fork (or in upstream Backrest), blue boxes are planned
+or still to be configured, and the items marked *a validar* are the open questions listed in
+[section 2](#_2-hub-maintenance-and-monitoring).
+
+> The repository stores `docs/**/*.png` in Git LFS; the rendered PNG is not committed.
 
 ## 1. Client: write-only
 
