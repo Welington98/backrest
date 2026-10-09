@@ -16,8 +16,7 @@
 > **This is a fork** of [garethgeorge/backrest](https://github.com/garethgeorge/backrest) (GPL-3.0, see [LICENSE](./LICENSE)),
 > adapted for service providers that back up many customer sites to a central hub. Everything below the
 > [fork section](#this-fork) is the upstream documentation. The install script, release binaries, documentation
-> and `ghcr.io` image referenced there point to **this fork**. The Homebrew tap and Docker Hub image are **upstream's** and do **not**
-> include the fork's changes; see [Using this fork](#using-this-fork).
+> and `ghcr.io` image referenced there all point to **this fork**; see [Using this fork](#using-this-fork).
 
 ## This fork
 
@@ -168,19 +167,6 @@ The service runs as your user by default (so config and data live under your `$H
 
 > [!TIP]
 > Review [install.sh](./install.sh) before piping it into a shell. You can also clone the repo and run `./install.sh` locally; it accepts the same flags.
-
-### macOS — Homebrew (alternative)
-
-The [Homebrew tap](https://github.com/garethgeorge/homebrew-backrest-tap) is **upstream's** and does not include the fork's changes:
-
-```sh
-brew tap garethgeorge/homebrew-backrest-tap
-brew install backrest
-brew services start backrest
-```
-
-> [!NOTE]
-> You may need to grant Full Disk Access to Backrest. Go to `System Preferences > Security & Privacy > Privacy > Full Disk Access` and add `/usr/local/bin/backrest`.
 
 ### Arch Linux (AUR)
 
