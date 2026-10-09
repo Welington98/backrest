@@ -309,6 +309,50 @@ func (r *RepoOrchestrator) Check(ctx context.Context, output io.Writer) error {
 	return nil
 }
 
+// CopyFrom copies the snapshots created by planID in src into this repo.
+// Note that restic reads backend credentials for both repos from the same
+// environment, so src and this repo must not need different values for the
+// same variable (e.g. two S3 repos with different AWS_ACCESS_KEY_ID).
+func (r *RepoOrchestrator) CopyFrom(ctx context.Context, src *v1.Repo, planID string, output io.Writer) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	ctx, flush := forwardResticLogs(ctx)
+	defer flush()
+
+	var opts []restic.GenericOption
+	for _, e := range src.GetEnv() {
+		opts = append(opts, restic.WithEnv(sourceEnvForCopy(ExpandEnv(e))))
+	}
+	// Like NewRepoOrchestrator, the config password is set last so it takes precedence.
+	if p := src.GetPassword(); p != "" {
+		opts = append(opts, restic.WithEnv(
+			"RESTIC_FROM_PASSWORD="+p,
+			"RESTIC_FROM_PASSWORD_FILE=",
+			"RESTIC_FROM_PASSWORD_COMMAND=",
+		))
+	}
+	opts = append(opts, restic.WithFlags("--tag", TagForPlan(planID)))
+
+	r.logger(ctx).Debug("copying snapshots", zap.String("from", src.Id), zap.String("plan", planID))
+	if err := r.repo.Copy(ctx, ExpandEnv(src.GetUri()), output, opts...); err != nil {
+		return fmt.Errorf("copy snapshots from repo %v to repo %v: %w", src.Id, r.repoConfig.Id, err)
+	}
+	return nil
+}
+
+// sourceEnvForCopy rewrites a source repo env entry for `restic copy`: password variables
+// become their RESTIC_FROM_* counterparts so they do not clash with the destination's own
+// RESTIC_PASSWORD*, which restic reads for the repo being written to. Other entries
+// (backend credentials, etc.) are shared by both repos and pass through unchanged.
+func sourceEnvForCopy(entry string) string {
+	for _, name := range []string{"RESTIC_PASSWORD_FILE", "RESTIC_PASSWORD_COMMAND", "RESTIC_PASSWORD"} {
+		if strings.HasPrefix(entry, name+"=") {
+			return "RESTIC_FROM_" + strings.TrimPrefix(entry, "RESTIC_")
+		}
+	}
+	return entry
+}
+
 func (r *RepoOrchestrator) Restore(ctx context.Context, snapshotId string, snapshotPath string, target string, progressCallback func(event *v1.RestoreProgressEntry)) (*v1.RestoreProgressEntry, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

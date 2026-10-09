@@ -104,8 +104,7 @@ archives:
 dockers_v2:
   - id: alpine
     images:
-      - "garethgeorge/backrest"
-      - "ghcr.io/garethgeorge/backrest"
+      - "ghcr.io/welington98/backrest"
     tags:
       - latest
       - latest-alpine
@@ -130,8 +129,7 @@ dockers_v2:
 
   - id: scratch
     images:
-      - garethgeorge/backrest
-      - ghcr.io/garethgeorge/backrest
+      - "ghcr.io/welington98/backrest"
     tags:
       - scratch
       - v{{ .Major }}-scratch
@@ -152,38 +150,10 @@ dockers_v2:
       - linux/arm/v7
       - linux/386
 
-brews:
-  - name: backrest
-    ids:
-      - default
-    homepage: https://github.com/garethgeorge/backrest
-    description: "Backrest is a web UI and orchestrator for restic backup."
-
-    url_template: "https://github.com/garethgeorge/backrest/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-
-    repository:
-      owner: garethgeorge
-      name: homebrew-backrest-tap
-      branch: main
-      token: "{{ .Env.HOMEBREW_GITHUB_TOKEN }}"
-
-    service: |
-      run opt_bin/"backrest"
-      error_log_path var/"log/backrest.log"
-      log_path var/"log/backrest.log"
-
+# Release notes and CHANGELOG.md are produced by semantic-release
+# (.github/workflows/semantic-release.yml); GoReleaser only attaches artifacts.
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
+  disable: true
 
 release:
-  github:
-    owner: garethgeorge
-    name: backrest
+  mode: keep-existing

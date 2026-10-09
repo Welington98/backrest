@@ -176,6 +176,14 @@ func validatePlan(plan *v1.Plan, repos map[string]*v1.Repo) error {
 		}
 	}
 
+	if dest := plan.GetCopyPolicy().GetDestRepo(); dest != "" {
+		if dest == plan.Repo {
+			err = multierror.Append(err, fmt.Errorf("copy policy: dest_repo must differ from the plan's repo"))
+		} else if _, ok := repos[dest]; !ok {
+			err = multierror.Append(err, fmt.Errorf("copy policy: dest_repo %q not found", dest))
+		}
+	}
+
 	slices.Sort(plan.Paths)
 
 	return err

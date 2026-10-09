@@ -335,6 +335,14 @@ export const OperationRow = ({
         <pre>{prune.output}</pre>
       ),
     });
+  } else if (operation.op.case === "operationCopy") {
+    const copy = operation.op.value;
+    expandedBodyItems.push("copy");
+    bodyItems.push({
+      key: "copy",
+      label: `${m.op_row_copy_output()} → ${copy.destRepo}`,
+      children: <LogView logref={copy.outputLogref} />,
+    });
   } else if (operation.op.case === "operationCheck") {
     const check = operation.op.value;
     expandedBodyItems.push("check");

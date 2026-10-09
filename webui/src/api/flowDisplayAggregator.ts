@@ -18,6 +18,7 @@ export enum DisplayType {
   STATS,
   RUNHOOK,
   RUNCOMMAND,
+  COPY,
 }
 
 export interface FlowDisplayInfo {
@@ -227,6 +228,8 @@ export const getTypeForDisplay = (op: Operation) => {
       return DisplayType.RUNHOOK;
     case "operationRunCommand":
       return DisplayType.RUNCOMMAND;
+    case "operationCopy":
+      return DisplayType.COPY;
     default:
       return DisplayType.UNKNOWN;
   }
@@ -244,6 +247,8 @@ export const displayTypeToString = (type: DisplayType) => {
       return m.op_type_forget();
     case DisplayType.PRUNE:
       return m.op_type_prune();
+    case DisplayType.COPY:
+      return m.op_type_copy();
     case DisplayType.CHECK:
       return m.op_type_check();
     case DisplayType.RESTORE:

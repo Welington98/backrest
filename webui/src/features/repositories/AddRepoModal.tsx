@@ -869,6 +869,13 @@ export const AddRepoModal = ({
                 />
 
                 <ToggleField
+                  checked={getField(["maintenanceDisabled"]) || false}
+                  onChange={(v) => updateField(["maintenanceDisabled"], v)}
+                  label={m.add_repo_modal_maintenance_disabled()}
+                  hint={m.add_repo_modal_maintenance_disabled_hint()}
+                />
+
+                <ToggleField
                   checked={getField(["shared"]) || false}
                   onChange={(v) => updateField(["shared"], v)}
                   label={m.add_repo_modal_shared()}

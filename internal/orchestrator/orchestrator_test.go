@@ -54,3 +54,22 @@ func TestAutoInitializeRepos(t *testing.T) {
 		t.Fatalf("expected repo auto-initialize to be false")
 	}
 }
+
+func TestSchedulesMaintenance(t *testing.T) {
+	tests := []struct {
+		name string
+		repo *v1.Repo
+		want bool
+	}{
+		{name: "local repo", repo: &v1.Repo{Id: "r"}, want: true},
+		{name: "repo managed by a remote instance", repo: &v1.Repo{Id: "r", OriginInstanceId: "hub"}, want: false},
+		{name: "maintenance disabled", repo: &v1.Repo{Id: "r", MaintenanceDisabled: true}, want: false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := schedulesMaintenance(tc.repo); got != tc.want {
+				t.Errorf("schedulesMaintenance() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

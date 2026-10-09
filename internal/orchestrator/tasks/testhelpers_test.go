@@ -36,6 +36,14 @@ type fakeRepoOrchestrator struct {
 	addTagsErr error
 
 	runCommandErr error
+
+	copyErr   error
+	copyCalls []copyCall
+}
+
+type copyCall struct {
+	SrcRepoID string
+	PlanID    string
 }
 
 var _ RepoOrchestrator = &fakeRepoOrchestrator{}
@@ -88,4 +96,9 @@ func (f *fakeRepoOrchestrator) AddTags(ctx context.Context, snapshotIDs []string
 
 func (f *fakeRepoOrchestrator) RunCommand(ctx context.Context, command string, writer io.Writer) error {
 	return f.runCommandErr
+}
+
+func (f *fakeRepoOrchestrator) CopyFrom(ctx context.Context, src *v1.Repo, planID string, output io.Writer) error {
+	f.copyCalls = append(f.copyCalls, copyCall{SrcRepoID: src.Id, PlanID: planID})
+	return f.copyErr
 }

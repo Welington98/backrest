@@ -136,6 +136,69 @@ func TestPruneTaskRun(t *testing.T) {
 	}
 }
 
+// --- CopyTask tests ---
+
+func TestCopyTaskRun(t *testing.T) {
+	tests := []struct {
+		name      string
+		fake      *fakeRepoOrchestrator
+		wantErr   bool
+		wantHooks []v1.Hook_Condition
+		wantCalls int
+	}{
+		{
+			name:      "success",
+			fake:      &fakeRepoOrchestrator{},
+			wantHooks: []v1.Hook_Condition{v1.Hook_CONDITION_COPY_START, v1.Hook_CONDITION_COPY_SUCCESS},
+			wantCalls: 1,
+		},
+		{
+			name:      "copy error",
+			fake:      &fakeRepoOrchestrator{copyErr: fmt.Errorf("copy failed")},
+			wantErr:   true,
+			wantHooks: []v1.Hook_Condition{v1.Hook_CONDITION_COPY_START, v1.Hook_CONDITION_COPY_ERROR, v1.Hook_CONDITION_ANY_ERROR},
+			wantCalls: 1,
+		},
+		{
+			name:      "unlock error",
+			fake:      &fakeRepoOrchestrator{unlockErr: fmt.Errorf("unlock failed")},
+			wantErr:   true,
+			wantHooks: []v1.Hook_Condition{v1.Hook_CONDITION_COPY_ERROR, v1.Hook_CONDITION_ANY_ERROR},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			src := &v1.Repo{Id: "local", Guid: "guid1"}
+			cfg := newTestConfig(src)
+			runner := setupTestRunner(t, cfg, tc.fake)
+
+			task := NewOneoffCopyTask(src, "plan1", "cloud", time.Now())
+			st := nextAndCreate(t, task, runner)
+			assert.Equal(t, "cloud", st.Op.GetOperationCopy().GetDestRepo())
+
+			err := task.Run(context.Background(), st, runner)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			for _, cond := range tc.wantHooks {
+				assert.True(t, hookContains(runner.hookCalls, cond), "expected hook %v", cond)
+			}
+			require.Len(t, tc.fake.copyCalls, tc.wantCalls)
+			if tc.wantCalls > 0 {
+				assert.Equal(t, copyCall{SrcRepoID: "local", PlanID: "plan1"}, tc.fake.copyCalls[0])
+			}
+
+			// A copy task is one-shot: it must not reschedule itself.
+			next, err := task.Next(time.Now(), runner)
+			require.NoError(t, err)
+			assert.Equal(t, NeverScheduledTask, next)
+		})
+	}
+}
+
 // --- CheckTask tests ---
 
 func TestCheckTaskRun(t *testing.T) {
@@ -305,6 +368,51 @@ func TestBackupTaskRun(t *testing.T) {
 				},
 			},
 			wantScheduled: []string{"index_snapshots"}, // no forget
+		},
+		{
+			name: "successful backup on a repo with maintenance disabled skips per-plan forget",
+			repo: &v1.Repo{Id: "repo1", Guid: "guid1", MaintenanceDisabled: true},
+			fake: &fakeRepoOrchestrator{
+				backupResult: &restic.BackupProgressEntry{
+					MessageType: "summary",
+					SnapshotId:  testSnapshotID,
+				},
+			},
+			plan: &v1.Plan{
+				Id:   "plan1",
+				Repo: "repo1",
+				Retention: &v1.RetentionPolicy{
+					Policy: &v1.RetentionPolicy_PolicyKeepLastN{PolicyKeepLastN: 5},
+				},
+			},
+			wantScheduled: []string{"index_snapshots"}, // no forget
+		},
+		{
+			name: "successful backup with copy policy schedules copy",
+			fake: &fakeRepoOrchestrator{
+				backupResult: &restic.BackupProgressEntry{
+					MessageType: "summary",
+					SnapshotId:  testSnapshotID,
+				},
+			},
+			plan: &v1.Plan{
+				Id:         "plan1",
+				Repo:       "repo1",
+				CopyPolicy: &v1.CopyPolicy{DestRepo: "cloud"},
+			},
+			wantScheduled: []string{"index_snapshots", "copy"},
+		},
+		{
+			name: "skip if unchanged does not schedule copy",
+			fake: &fakeRepoOrchestrator{
+				backupResult: &restic.BackupProgressEntry{MessageType: "summary", SnapshotId: ""},
+			},
+			plan: &v1.Plan{
+				Id:         "plan1",
+				Repo:       "repo1",
+				CopyPolicy: &v1.CopyPolicy{DestRepo: "cloud"},
+			},
+			wantScheduled: nil,
 		},
 		{
 			name:    "backup error",

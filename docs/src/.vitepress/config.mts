@@ -29,6 +29,8 @@ export default defineConfig({
           { text: 'Operations', link: '/docs/operations' },
           { text: 'Hooks', link: '/docs/hooks' },
           { text: 'Multihost Sync', link: '/docs/multihost' },
+          { text: 'Hub Monitoring', link: '/docs/hub-monitoring' },
+          { text: 'Fleet Playbook', link: '/docs/fleet-playbook' },
           { text: 'API', link: '/docs/api' }
         ]
       },

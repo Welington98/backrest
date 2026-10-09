@@ -422,6 +422,13 @@ func (r *Repo) Check(ctx context.Context, checkOutput io.Writer, opts ...Generic
 	return r.runSimpleCommand(ctx, []string{"check"}, checkOutput, opts...)
 }
 
+// Copy copies snapshots from the repo at fromURI into this repo (`restic copy`).
+// Credentials for the source repo are supplied through opts, e.g. via
+// RESTIC_FROM_PASSWORD. Use WithFlags("--tag", ...) to restrict what is copied.
+func (r *Repo) Copy(ctx context.Context, fromURI string, copyOutput io.Writer, opts ...GenericOption) error {
+	return r.runSimpleCommand(ctx, []string{"copy", "--from-repo", fromURI}, copyOutput, opts...)
+}
+
 // runSimpleCommand executes a command with optional output capture
 func (r *Repo) runSimpleCommand(ctx context.Context, args []string, outputWriter io.Writer, opts ...GenericOption) error {
 	cmd := r.commandWithContext(ctx, args, opts...)
