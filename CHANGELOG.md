@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/Welington98/backrest/compare/v1.0.0...v1.0.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **ci:** stop semantic-release PR comments from failing the release job ([6c6dc80](https://github.com/Welington98/backrest/commit/6c6dc800f40079fddc923b20eab17eadb605e65d))
+
 # 1.0.0 (2026-10-09)
 
 
