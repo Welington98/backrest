@@ -11,7 +11,7 @@ hero:
       link: /introduction/getting-started
     - theme: alt
       text: Open on GitHub
-      link: https://github.com/garethgeorge/backrest
+      link: https://github.com/Welington98/backrest
 
 features:
   - title: Existing Repositories
@@ -32,8 +32,8 @@ features:
 
 ::: code-group
 ```bash [Linux (Script)]
-# Download the latest release from https://github.com/garethgeorge/backrest/releases
-curl -sLO https://github.com/garethgeorge/backrest/releases/latest/download/backrest_Linux_x86_64.tar.gz
+# Download the latest release from https://github.com/Welington98/backrest/releases
+curl -sLO https://github.com/Welington98/backrest/releases/latest/download/backrest_Linux_x86_64.tar.gz
 mkdir backrest && tar -xzvf backrest_Linux_x86_64.tar.gz -C backrest
 cd backrest && ./install.sh
 ```
@@ -65,8 +65,8 @@ brew install backrest
 brew services start backrest
 ```
 ```bash [MacOS (Script)]
-# Download the latest release from https://github.com/garethgeorge/backrest/releases
-curl -sLO https://github.com/garethgeorge/backrest/releases/latest/download/backrest_Darwin_arm64.tar.gz
+# Download the latest release from https://github.com/Welington98/backrest/releases
+curl -sLO https://github.com/Welington98/backrest/releases/latest/download/backrest_Darwin_arm64.tar.gz
 mkdir backrest && tar -xzvf backrest_Darwin_arm64.tar.gz -C backrest
 cd backrest && ./install.sh
 ```
@@ -74,7 +74,7 @@ cd backrest && ./install.sh
 version: "3.8"
 services:
   backrest:
-    image: ghcr.io/garethgeorge/backrest:latest
+    image: ghcr.io/welington98/backrest:latest
     container_name: backrest
     hostname: backrest
     volumes:

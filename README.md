@@ -15,9 +15,8 @@
 > [!IMPORTANT]
 > **This is a fork** of [garethgeorge/backrest](https://github.com/garethgeorge/backrest) (GPL-3.0, see [LICENSE](./LICENSE)),
 > adapted for service providers that back up many customer sites to a central hub. Everything below the
-> [fork section](#this-fork) is the upstream documentation. The install script, Homebrew tap and Docker images
-> referenced there are **upstream's** and do **not** include the fork's changes; see
-> [Using this fork](#using-this-fork).
+> [fork section](#this-fork) is the upstream documentation. The install script, release binaries, documentation
+> and `ghcr.io` image referenced there all point to **this fork**; see [Using this fork](#using-this-fork).
 
 ## This fork
 
@@ -36,7 +35,7 @@ The branches are stacked (each one contains the previous ones); `docs/readme-for
 
 ### Using this fork
 
-Until a release is published from the fork, build from source (see [Compiling](#compiling)):
+The install script, release binaries and `ghcr.io/welington98/backrest` come from this fork's releases. If no release with assets is published yet, build from source (see [Compiling](#compiling)):
 
 ```sh
 git checkout docs/readme-fork   # or whichever branch has the features you need
@@ -108,7 +107,7 @@ Built with Go, Backrest is distributed as a standalone, lightweight binary with 
   - macOS
   - Windows
   - FreeBSD
-  - [Docker](https://hub.docker.com/r/garethgeorge/backrest)
+  - [Docker](https://github.com/Welington98/backrest/pkgs/container/backrest)
 - **Backup Management**:
   - Import existing restic repositories
   - Cron-scheduled backups and maintenance (e.g. prune, check, forget, etc)
@@ -131,7 +130,7 @@ Built with Go, Backrest is distributed as a standalone, lightweight binary with 
 
 # User Guide
 
-[See the Backrest docs](https://garethgeorge.github.io/backrest/introduction/getting-started).
+[See the Backrest docs](https://welington98.github.io/backrest/introduction/getting-started).
 
 ---
 
@@ -151,36 +150,23 @@ Once installed, access Backrest at `http://localhost:9898` (default port). First
 The install script downloads the latest release, drops the binary into `/usr/local/bin`, and sets up the appropriate auto-start integration (systemd or OpenRC on Linux; launchd on macOS):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/garethgeorge/backrest/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Welington98/backrest/main/install.sh | bash
 ```
 
 Flags go after `--`:
 
 ```sh
 # Bind to all interfaces (default: 127.0.0.1:9898)
-curl -fsSL https://raw.githubusercontent.com/garethgeorge/backrest/main/install.sh | bash -s -- --allow-remote-access
+curl -fsSL https://raw.githubusercontent.com/Welington98/backrest/main/install.sh | bash -s -- --allow-remote-access
 
 # Uninstall (removes service, autostart entry, and /usr/local/bin/backrest)
-curl -fsSL https://raw.githubusercontent.com/garethgeorge/backrest/main/install.sh | bash -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/Welington98/backrest/main/install.sh | bash -s -- --uninstall
 ```
 
 The service runs as your user by default (so config and data live under your `$HOME`). To install as `root` instead, pass `--root`. After install, access Backrest at `http://localhost:9898`.
 
 > [!TIP]
 > Review [install.sh](./install.sh) before piping it into a shell. You can also clone the repo and run `./install.sh` locally; it accepts the same flags.
-
-### macOS — Homebrew (alternative)
-
-[Homebrew tap](https://github.com/garethgeorge/homebrew-backrest-tap):
-
-```sh
-brew tap garethgeorge/homebrew-backrest-tap
-brew install backrest
-brew services start backrest
-```
-
-> [!NOTE]
-> You may need to grant Full Disk Access to Backrest. Go to `System Preferences > Security & Privacy > Privacy > Full Disk Access` and add `/usr/local/bin/backrest`.
 
 ### Arch Linux (AUR)
 
@@ -193,9 +179,9 @@ sudo systemctl enable --now backrest@$USER.service
 
 ## Docker
 
-Image: `ghcr.io/garethgeorge/backrest` (also on [Docker Hub](https://hub.docker.com/r/garethgeorge/backrest)).
+Image: `ghcr.io/welington98/backrest`.
 - Includes rclone and common Unix utilities
-- For a minimal image, use `ghcr.io/garethgeorge/backrest:scratch`
+- For a minimal image, use `ghcr.io/welington98/backrest:scratch`
 
 ### Docker Compose
 
@@ -203,7 +189,7 @@ Image: `ghcr.io/garethgeorge/backrest` (also on [Docker Hub](https://hub.docker.
 version: "3.8"
 services:
   backrest:
-    image: ghcr.io/garethgeorge/backrest:latest
+    image: ghcr.io/welington98/backrest:latest
     container_name: backrest
     hostname: backrest
     volumes:
@@ -227,7 +213,7 @@ services:
 
 ## Windows
 
-Download the Windows installer for your architecture from the [releases page](https://github.com/garethgeorge/backrest/releases). The installer, named `Backrest-setup-[arch].exe`, places Backrest and a GUI tray application in `%localappdata%\Programs\Backrest\`. The tray application, set to start on login, monitors Backrest.
+Download the Windows installer for your architecture from the [releases page](https://github.com/Welington98/backrest/releases). The installer, named `Backrest-setup-[arch].exe`, places Backrest and a GUI tray application in `%localappdata%\Programs\Backrest\`. The tray application, set to start on login, monitors Backrest.
 
 > [!TIP]
 > To override the default port before installation, set a user environment variable named `BACKREST_PORT`. On Windows 10+, navigate to Settings > About > Advanced system settings > Environment Variables. Under "User variables", create a new variable `BACKREST_PORT` with the value `127.0.0.1:port` (e.g. `127.0.0.1:8080`). If changing post-installation, re-run the installer to update shortcuts with the new port.
@@ -261,7 +247,7 @@ Download the Windows installer for your architecture from the [releases page](ht
 
 ## Contributing
 
-Contributions are welcome! See the [issues](https://github.com/garethgeorge/backrest/issues) or feel free to open a new issue to discuss a project. Beyond the core codebase, contributions to [documentation](https://garethgeorge.github.io/backrest/introduction/getting-started), [cookbooks](https://garethgeorge.github.io/backrest/cookbooks/command-hook-examples), and testing are always welcome.
+Contributions are welcome! See the [issues](https://github.com/Welington98/backrest/issues) or feel free to open a new issue to discuss a project. Beyond the core codebase, contributions to [documentation](https://welington98.github.io/backrest/introduction/getting-started), [cookbooks](https://welington98.github.io/backrest/cookbooks/command-hook-examples), and testing are always welcome.
 
 ## Build Dependencies
 

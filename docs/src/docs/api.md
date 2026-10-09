@@ -2,7 +2,7 @@
 
 Backrest provides a limited HTTP API for interacting with the backrest service. To use the API without a username and password authentication must be disabled. Otherwise, provide a username and password with basic auth headers. e.g. `curl http://localhost:9898/v1/<endpoint> -u USERNAME:PASSWORD`. Usernames and passwords consisting of upper and lower case letters (A-Z, a-z) and numbers (0-9) will work as is. Special characters may need to be escaped. e.g. single quotes in a password `-u 'user:p@ss\'w0rd'`
 
-All of Backrest's API endpoints are defined as a gRPC service and are exposed over HTTP by a JSON RPC gateway for easy scripting. For the full service definition see [service.proto](https://github.com/garethgeorge/backrest/blob/main/proto/v1/service.proto).
+All of Backrest's API endpoints are defined as a gRPC service and are exposed over HTTP by a JSON RPC gateway for easy scripting. For the full service definition see [service.proto](https://github.com/Welington98/backrest/blob/main/proto/v1/service.proto).
 
 ::: warning
 Only the APIs documented below are considered stable, other endpoints may be subject to change.
@@ -42,7 +42,7 @@ More complex selectors can be applied e.g.
 curl -X POST 'localhost:9898/v1.Backrest/GetOperations' --data '{"selector": {"planId": "YOUR_PLAN_ID"}}' -H 'Content-Type: application/json' -u USERNAME:PASSWORD
 ```
 
-For details on the structure of operations returned see the [operations.proto](https://github.com/garethgeorge/backrest/blob/main/proto/v1/operations.proto).
+For details on the structure of operations returned see the [operations.proto](https://github.com/Welington98/backrest/blob/main/proto/v1/operations.proto).
 
 ::: warning
 The structure of the operation history is subject to change over time. Different fields may be added or removed in future versions.
