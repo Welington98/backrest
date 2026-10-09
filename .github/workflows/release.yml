@@ -1,3 +1,5 @@
+# Started by semantic-release.yml (workflow_dispatch on the new tag) or by
+# pushing a vX.Y.Z tag manually. Builds and publishes all platforms.
 name: Tagged Release
 
 on:
