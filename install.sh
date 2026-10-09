@@ -63,8 +63,8 @@ for arg in "$@"; do
       echo "  --root                      Acknowledge install as root (services run as root)"
       echo ""
       echo "Curl-piped invocation:"
-      echo "  curl -fsSL https://raw.githubusercontent.com/garethgeorge/backrest/main/install.sh | sudo bash"
-      echo "  curl -fsSL https://raw.githubusercontent.com/garethgeorge/backrest/main/install.sh | sudo bash -s -- --no-tray"
+      echo "  curl -fsSL https://raw.githubusercontent.com/Welington98/backrest/main/install.sh | sudo bash"
+      echo "  curl -fsSL https://raw.githubusercontent.com/Welington98/backrest/main/install.sh | sudo bash -s -- --no-tray"
       exit 1
       ;;
   esac
@@ -152,7 +152,7 @@ if [ "$(id -u)" -ne 0 ]; then
       echo "Error: this script needs sudo, but no TTY is available to prompt for a password."
       if [ "$PIPED_INVOCATION" = true ]; then
         echo "Re-run with sudo on the outside, e.g.:"
-        echo "  curl -fsSL https://raw.githubusercontent.com/garethgeorge/backrest/main/install.sh | sudo bash"
+        echo "  curl -fsSL https://raw.githubusercontent.com/Welington98/backrest/main/install.sh | sudo bash"
       else
         echo "Run 'sudo -v' first, or invoke the script with sudo."
       fi
@@ -333,7 +333,7 @@ acquire_binary() {
       esac
 
       artifact="backrest_${os}_${arch}.tar.gz"
-      url="https://github.com/garethgeorge/backrest/releases/latest/download/${artifact}"
+      url="https://github.com/Welington98/backrest/releases/latest/download/${artifact}"
 
       tmpdir="$(mktemp -d)"
       # shellcheck disable=SC2064

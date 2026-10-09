@@ -46,11 +46,11 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/garethgeorge/backrest' }
+      { icon: 'github', link: 'https://github.com/Welington98/backrest' }
     ],
 
     editLink: {
-      pattern: 'https://github.com/garethgeorge/backrest/edit/main/docs/src/:path',
+      pattern: 'https://github.com/Welington98/backrest/edit/main/docs/src/:path',
       text: 'Edit this page on GitHub'
     }
   }

@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide will walk you through the basic steps to setup a new [Backrest](https://github.com/garethgeorge/backrest) instance.
+This guide will walk you through the basic steps to setup a new [Backrest](https://github.com/Welington98/backrest) instance.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Before diving into configuration, you should have:
 
 ## Installation
 
-Please refer to the <a href="https://github.com/garethgeorge/backrest" target="_blank">GitHub README</a> for platform-specific installation instructions.
+Please refer to the <a href="https://github.com/Welington98/backrest" target="_blank">GitHub README</a> for platform-specific installation instructions.
 
 ## Core Concepts
 
