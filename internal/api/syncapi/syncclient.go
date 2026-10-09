@@ -347,27 +347,13 @@ func (c *syncSessionHandlerClient) OnConnectionEstablished(ctx context.Context, 
 	peerState.LastHeartbeat = time.Now()
 	c.mgr.peerStateManager.SetPeerState(peer.Keyid, peerState)
 
-	// Clear the pairing secret from the known host entry now that pairing has succeeded.
-	snapshotHosts := c.syncConfigSnapshot.config.GetMultihost().GetKnownHosts()
-	khIdx := slices.IndexFunc(snapshotHosts, func(kh *v1.Multihost_Peer) bool {
-		return kh.GetKeyid() == peer.GetKeyid()
-	})
-	if khIdx >= 0 && snapshotHosts[khIdx].GetInitialPairingSecret() != "" {
-		if err := c.mgr.configMgr.Transform(func(cfg *v1.Config) (*v1.Config, error) {
-			idx := slices.IndexFunc(cfg.GetMultihost().GetKnownHosts(), func(kh *v1.Multihost_Peer) bool {
-				return kh.GetKeyid() == peer.GetKeyid()
-			})
-			if idx >= 0 {
-				cfg.GetMultihost().GetKnownHosts()[idx].InitialPairingSecret = ""
-			}
-			cfg.Modno++
-			return cfg, nil
-		}); err != nil {
-			c.l.Sugar().Warnf("failed to clear pairing secret after successful pairing: %v", err)
-		} else {
-			c.l.Sugar().Infof("cleared pairing secret for peer %q after successful connection", peer.InstanceId)
-		}
-	}
+	// Note: the one-time pairing secret is NOT cleared here. Reaching this point only
+	// proves we've verified the host's identity at the transport layer — it says nothing
+	// about whether the host has validated *our* pairing secret and authorized us yet
+	// (that happens independently, slightly later, in the host's own handshake
+	// processing). Clearing the secret this early previously raced with the host's
+	// authorization: see clearPairingSecretIfNeeded, called once the host's acceptance
+	// is actually confirmed.
 
 	// Send a heartbeat every interval to keep the connection alive.
 	go sendHeartbeats(ctx, stream, env.MultihostHeartbeatInterval())
@@ -535,7 +521,9 @@ func (c *syncSessionHandlerClient) HandleReceiveResources(ctx context.Context, s
 	return nil
 }
 
-// Note unused: there isn't a situation where the host would send its config for information, the host will only call 'SetConfig' to update the config.
+// The host sends this right after OnConnectionEstablished succeeds on its side, so
+// receiving it is our confirmation that the host has actually authorized this
+// connection (validated our pairing secret, for a first-time pairing).
 func (c *syncSessionHandlerClient) HandleReceiveConfig(ctx context.Context, stream *bidiSyncCommandStream, item *v1sync.SyncStreamItem_SyncActionReceiveConfig) error {
 	c.l.Sugar().Debugf("received remote config: %d repos, %d plans, modno=%d",
 		len(item.GetConfig().GetRepos()), len(item.GetConfig().GetPlans()), item.GetConfig().GetModno())
@@ -549,7 +537,40 @@ func (c *syncSessionHandlerClient) HandleReceiveConfig(ctx context.Context, stre
 	}
 	peerState.Config = newRemoteConfig
 	c.mgr.peerStateManager.SetPeerState(c.peer.Keyid, peerState)
+
+	c.clearPairingSecretIfNeeded()
 	return nil
+}
+
+// clearPairingSecretIfNeeded consumes the one-time pairing secret for c.peer, now that
+// we have confirmation (the host sent us config) that it accepted our pairing. Must not
+// be called before that confirmation: the host's config transform that persists the
+// pairing (adding us to its authorized_clients) and our own clearing of the secret are
+// two independent, unsynchronized writes, so clearing early could burn the secret before
+// the host's side of the pairing actually lands — stranding us with no secret to retry
+// with if this connection attempt is lost for any other reason first.
+func (c *syncSessionHandlerClient) clearPairingSecretIfNeeded() {
+	snapshotHosts := c.syncConfigSnapshot.config.GetMultihost().GetKnownHosts()
+	khIdx := slices.IndexFunc(snapshotHosts, func(kh *v1.Multihost_Peer) bool {
+		return kh.GetKeyid() == c.peer.GetKeyid()
+	})
+	if khIdx < 0 || snapshotHosts[khIdx].GetInitialPairingSecret() == "" {
+		return
+	}
+	if err := c.mgr.configMgr.Transform(func(cfg *v1.Config) (*v1.Config, error) {
+		idx := slices.IndexFunc(cfg.GetMultihost().GetKnownHosts(), func(kh *v1.Multihost_Peer) bool {
+			return kh.GetKeyid() == c.peer.GetKeyid()
+		})
+		if idx >= 0 {
+			cfg.GetMultihost().GetKnownHosts()[idx].InitialPairingSecret = ""
+		}
+		cfg.Modno++
+		return cfg, nil
+	}); err != nil {
+		c.l.Sugar().Warnf("failed to clear pairing secret after successful pairing: %v", err)
+	} else {
+		c.l.Sugar().Infof("cleared pairing secret for peer %q after successful connection", c.peer.InstanceId)
+	}
 }
 
 func (c *syncSessionHandlerClient) HandleSetConfig(ctx context.Context, stream *bidiSyncCommandStream, item *v1sync.SyncStreamItem_SyncActionSetConfig) error {

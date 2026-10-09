@@ -134,7 +134,19 @@ func newSyncHandlerServer(mgr *SyncManager, snapshot *syncConfigSnapshot, mapper
 var _ syncSessionHandler = (*syncSessionHandlerServer)(nil)
 
 func (h *syncSessionHandlerServer) OnConnectionEstablished(ctx context.Context, stream *bidiSyncCommandStream, peer *v1.Multihost_Peer) error {
-	// Verify that the peer is in our authorized clients list
+	// Verify that the peer is in our authorized clients list. Re-fetch the config rather
+	// than trusting h.snapshot here: h.snapshot was captured at the start of this RPC,
+	// before handleUnknownPeerPairing (if this connection is the one pairing peer) ran its
+	// config Transform, so it can't yet reflect a peer this very call just authorized.
+	// Transform clones rather than mutating in place, so h.snapshot.config would otherwise
+	// stay stale for the rest of this connection.
+	currentConfig, err := h.mgr.configMgr.Get()
+	if err != nil {
+		h.l.Sugar().Warnf("failed to load current config to authorize client %q: %v", peer.InstanceId, err)
+		return NewSyncErrorInternal(fmt.Errorf("loading config to authorize client %q: %w", peer.InstanceId, err))
+	}
+	h.snapshot.config = currentConfig
+
 	authorizedClientPeerIdx := slices.IndexFunc(h.snapshot.config.Multihost.GetAuthorizedClients(), func(p *v1.Multihost_Peer) bool {
 		return p.InstanceId == peer.InstanceId && p.Keyid == peer.Keyid
 	})
@@ -146,7 +158,6 @@ func (h *syncSessionHandlerServer) OnConnectionEstablished(ctx context.Context, 
 	h.peer = h.snapshot.config.Multihost.AuthorizedClients[authorizedClientPeerIdx]
 	h.l = zap.L().Named(fmt.Sprintf("syncserver handler for peer %q", h.peer.InstanceId))
 
-	var err error
 	h.permissions, err = permissions.NewPermissionSet(h.peer.GetPermissions())
 	if err != nil {
 		h.l.Sugar().Warnf("failed to create permission set for client %q: %v", peer.InstanceId, err)
