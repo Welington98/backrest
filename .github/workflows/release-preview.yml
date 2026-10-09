@@ -8,6 +8,12 @@ on:
       - "*.md"
   workflow_dispatch:
 
+# The reusable workflow asks for write permissions; a caller must grant at
+# least what the called workflow requests or the run fails at startup.
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   call-reusable-release:
     uses: ./.github/workflows/reusable-release.yml
